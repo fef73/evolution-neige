@@ -791,6 +791,7 @@ async function loadAndRender(){
       // Traiter cette année
       const depthByDate = {};
       const humidityByDate = {};
+      const isothermByDate = {};
       let depthSamples = 0;
       if(data.hourly && Array.isArray(data.hourly.time)){
         if(Array.isArray(data.hourly.snow_depth)){
@@ -816,6 +817,17 @@ async function loadAndRender(){
             humidityByDate[d].count++;
           });
         }
+        // Calculer l'altitude de l'isotherme 0°C moyenne par jour
+        if(Array.isArray(data.hourly.freezing_level_height)){
+          data.hourly.time.forEach((t, i) => {
+            const z = data.hourly.freezing_level_height[i];
+            if(z === null || z === undefined) return;
+            const d = t.split("T")[0];
+            if(!isothermByDate[d]) isothermByDate[d] = { sum: 0, count: 0 };
+            isothermByDate[d].sum += z;
+            isothermByDate[d].count++;
+          });
+        }
       }
 
       const dates = data.daily.time;
@@ -829,8 +841,19 @@ async function loadAndRender(){
       allData[year] = {};
       dates.forEach((t,i) => {
         const snow = data.daily.snowfall_sum ? data.daily.snowfall_sum[i] : null;
+        const precip = data.daily.precipitation_sum ? data.daily.precipitation_sum[i] : null;
+        const rain = (snow !== null && precip !== null) ? Math.max(0, precip - snow) : null;
         const max = data.daily.temperature_2m_max[i];
+        const min = data.daily.temperature_2m_min[i];
         const humidity = humidityByDate[t] ? humidityByDate[t].sum / humidityByDate[t].count : null;
+        let isotherm = isothermByDate[t] ? isothermByDate[t].sum / isothermByDate[t].count : null;
+        
+        // Fallback : calculer l'isotherm avec la lapse rate si non disponible
+        if(!isotherm && max !== null && min !== null){
+          const meanTemp = (max + min) / 2;
+          const baseAlt = currentCity.elevation || 0;
+          isotherm = baseAlt + (meanTemp / 0.65) * 100;
+        }
 
         if(snow === null || max === null) return;
 
@@ -852,7 +875,7 @@ async function loadAndRender(){
         const day = String(dateObj.getDate()).padStart(2, '0');
         const key = `${month}-${day}`;
 
-        allData[year][key] = { snow, remaining, humidity };
+        allData[year][key] = { snow, rain, remaining, humidity, temp_max: max, isotherm };
       });
     }
 
@@ -861,19 +884,21 @@ async function loadAndRender(){
     const { start: weekStart, end: weekEnd } = getWeekDates(weekNumber);
     
     const allDays = [];
+    const monthNames = ["jan", "fév", "mar", "avr", "mai", "juin", "juil", "aoû", "sep", "oct", "nov", "déc"];
     for(let i = 0; i < 7; i++){
       const d = new Date(weekStart);
       d.setDate(d.getDate() + i);
       const month = String(d.getMonth() + 1).padStart(2, '0');
       const day = String(d.getDate()).padStart(2, '0');
       const key = `${month}-${day}`;
-      const dayName = ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"][d.getDay()] 
+      const dayName = ["Dim", "Lun", "Mar", "Mer", "Jeu", "Ven", "Sam"][d.getDay()] 
                     || d.toLocaleDateString("fr-FR", { weekday: "short" });
-      const dayLabel = `${dayName} ${d.getDate()}`;
+      const monthName = monthNames[d.getMonth()];
+      const dayLabel = `${dayName} ${d.getDate()} ${monthName}`;
       allDays.push({ key, label: dayLabel });
     }
 
-    // Regrouper par jour : { "01-15": { label: "Lun 15", "2023": {snow, remaining, humidity}, ...}, ...}
+    // Regrouper par jour : { "01-15": { label: "Lun 15", "2023": {snow, rain, remaining, humidity, temp_max, isotherm}, ...}, ...}
     const byDay = {};
     allDays.forEach(({ key, label }) => {
       byDay[key] = { label };
@@ -881,7 +906,7 @@ async function loadAndRender(){
         const yearData = allData[year] && allData[year][key];
         byDay[key][year] = yearData 
           ? yearData 
-          : { snow: null, remaining: null, humidity: null };
+          : { snow: null, rain: null, remaining: null, humidity: null, temp_max: null, isotherm: null };
       });
     });
 
@@ -948,15 +973,7 @@ function renderComparatorChart(byDay, selectedYears, legendVisible){
   // Créer les labels à partir de byDay (qui contient déjà le libellé du jour)
   const labels = dayKeys.map(key => byDay[key].label);
   
-  // Calculer l'humidité moyenne pour chaque jour (moyenne de toutes les années)
-  const avgHumidityData = dayKeys.map(day => {
-    const humidities = selectedYears
-      .map(year => byDay[day][year]?.humidity)
-      .filter(h => h !== null && h !== undefined);
-    return humidities.length ? humidities.reduce((a, b) => a + b, 0) / humidities.length : null;
-  });
-  
-  // Créer un dataset pour chaque année × type (snow/remaining)
+  // Créer un dataset pour chaque année × type (snow/remaining/humidity)
   const datasets = [];
   selectedYears.forEach(year => {
     const color = YEAR_COLORS[year] || "#8fe3ff";
@@ -966,6 +983,22 @@ function renderComparatorChart(byDay, selectedYears, legendVisible){
     });
     const remainingData = dayKeys.map(day => {
       const v = byDay[day][year]?.remaining;
+      return v !== null && v !== undefined ? v : null;
+    });
+    const humidityData = dayKeys.map(day => {
+      const v = byDay[day][year]?.humidity;
+      return v !== null && v !== undefined ? v : null;
+    });
+    const tempMaxData = dayKeys.map(day => {
+      const v = byDay[day][year]?.temp_max;
+      return v !== null && v !== undefined ? v : null;
+    });
+    const isothermData = dayKeys.map(day => {
+      const v = byDay[day][year]?.isotherm;
+      return v !== null && v !== undefined ? v : null;
+    });
+    const rainData = dayKeys.map(day => {
+      const v = byDay[day][year]?.rain;
       return v !== null && v !== undefined ? v : null;
     });
     
@@ -981,6 +1014,16 @@ function renderComparatorChart(byDay, selectedYears, legendVisible){
     });
     datasets.push({
       type: "bar",
+      label: `${year} — pluie du jour`,
+      data: rainData,
+      backgroundColor: "#0277bd", // Bleu foncé pour la pluie
+      borderRadius: 2,
+      yAxisID: "y",
+      order: 2,
+      spanGaps: false,
+    });
+    datasets.push({
+      type: "bar",
       label: `${year} — neige au sol`,
       data: remainingData,
       backgroundColor: color + "55", // 55 = 55/FF ≈ 33% opacité
@@ -989,23 +1032,38 @@ function renderComparatorChart(byDay, selectedYears, legendVisible){
       order: 2,
       spanGaps: false,
     });
+    datasets.push({
+      type: "bar",
+      label: `${year} — humidité (%)`,
+      data: humidityData,
+      backgroundColor: color + "33", // 33 = 33/FF ≈ 20% opacité
+      borderRadius: 1,
+      yAxisID: "y2",
+      order: 2,
+      spanGaps: false,
+    });
+    datasets.push({
+      type: "bar",
+      label: `${year} — temp. max (°C)`,
+      data: tempMaxData,
+      backgroundColor: color + "19", // 19 = 19/FF ≈ 10% opacité
+      borderRadius: 1,
+      yAxisID: "y3",
+      order: 2,
+      spanGaps: false,
+    });
+    datasets.push({
+      type: "bar",
+      label: `${year} — isotherme 0°C (m)`,
+      data: isothermData,
+      backgroundColor: color + "0d", // 0d = 0d/FF ≈ 5% opacité
+      borderRadius: 1,
+      yAxisID: "y4",
+      order: 2,
+      spanGaps: false,
+    });
   });
   
-  // Ajouter la courbe d'humidité moyenne
-  datasets.push({
-    type: "line",
-    label: "Humidité moyenne (%)",
-    data: avgHumidityData,
-    borderColor: "#90ee90",
-    backgroundColor: "rgba(144, 238, 144, 0.08)",
-    pointRadius: 0,
-    borderWidth: 2,
-    tension: 0.3,
-    yAxisID: "y2",
-    order: 3,
-    spanGaps: true,
-    fill: false,
-  });
   
   if(chart) chart.destroy();
   chart = new Chart(canvasCtx, {
@@ -1022,7 +1080,9 @@ function renderComparatorChart(byDay, selectedYears, legendVisible){
           callbacks:{
             label: (item) => {
               if(item.raw === null || item.raw === undefined) return `${item.dataset.label} : —`;
-              if(item.dataset.label.includes("Humidité")) return `${item.dataset.label} : ${item.raw.toFixed(1)} %`;
+              if(item.dataset.label.includes("humidité")) return `${item.dataset.label} : ${item.raw.toFixed(1)} %`;
+              if(item.dataset.label.includes("temp.")) return `${item.dataset.label} : ${item.raw.toFixed(1)} °C`;
+              if(item.dataset.label.includes("isotherme")) return `${item.dataset.label} : ${item.raw.toFixed(0)} m`;
               return `${item.dataset.label} : ${item.raw.toFixed(1)} cm`;
             },
           }
@@ -1046,6 +1106,18 @@ function renderComparatorChart(byDay, selectedYears, legendVisible){
           max: 100,
           ticks:{ color:"#90ee90", font:{ family:"IBM Plex Mono", size:11 }, callback: v => v + "%" },
           title:{ display:true, text:"Humidité (%)", color:"#90ee90", font:{ family:"IBM Plex Mono", size:10 } },
+        },
+        y3:{
+          position:"right",
+          grid:{ display:false },
+          ticks:{ color:"#e76f51", font:{ family:"IBM Plex Mono", size:11 }, callback: v => v + "°" },
+          title:{ display:true, text:"Température (°C)", color:"#e76f51", font:{ family:"IBM Plex Mono", size:10 } },
+        },
+        y4:{
+          position:"right",
+          grid:{ display:false },
+          ticks:{ color:"#c9a6ff", font:{ family:"IBM Plex Mono", size:11 }, callback: v => v + " m" },
+          title:{ display:true, text:"Isotherme 0°C (m)", color:"#c9a6ff", font:{ family:"IBM Plex Mono", size:10 } },
         },
       },
     },
