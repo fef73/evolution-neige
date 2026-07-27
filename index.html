@@ -227,8 +227,7 @@
   .gauge-legend{display:flex; justify-content:space-between; margin-top:8px; font-family:'IBM Plex Mono', monospace; font-size:12.5px;}
 
   .cards{
-    display:grid; grid-template-columns:repeat(auto-fit,minmax(190px,1fr));
-    gap:12px; margin-top:22px;
+    display:flex; flex-direction:column; gap:12px; margin-top:22px; max-width:100%;
   }
   .card{
     background:var(--bg-card); border:1px solid var(--hairline); border-radius:14px;
@@ -357,16 +356,16 @@
         <input type="checkbox" class="year-check" value="2022"> 2022
       </label>
       <label class="period-chip-label">
-        <input type="checkbox" class="year-check" value="2023" checked> 2023
+        <input type="checkbox" class="year-check" value="2023" checked="checked"> 2023
       </label>
       <label class="period-chip-label">
-        <input type="checkbox" class="year-check" value="2024" checked> 2024
+        <input type="checkbox" class="year-check" value="2024" checked="checked"> 2024
       </label>
       <label class="period-chip-label">
-        <input type="checkbox" class="year-check" value="2025" checked> 2025
+        <input type="checkbox" class="year-check" value="2025" checked="checked"> 2025
       </label>
       <label class="period-chip-label">
-        <input type="checkbox" class="year-check" value="2026" checked> 2026
+        <input type="checkbox" class="year-check" value="2026" checked="checked"> 2026
       </label>
     </div>
   </div>
@@ -387,8 +386,7 @@
   <div class="toolbar">
     <div id="updated-at"></div>
     <div class="toolbar-right">
-      <button class="btn" id="toggle-legend-btn">◼ Masquer légende</button>
-      <button class="btn" id="toggle-cards-btn">👁 Masquer tableau</button>
+      <button class="btn" id="toggle-legend-btn">◼ Afficher données</button>
       <button class="btn" id="share-btn">🔗 Copier le lien</button>
       <button class="btn" id="refresh-btn">↻ Actualiser</button>
     </div>
@@ -688,21 +686,12 @@ document.getElementById("week-plus").addEventListener("click", () => {
 });
 
 // Toggle masquer/afficher les cartes statistiques
-const toggleBtn = document.getElementById("toggle-cards-btn");
-let cardsVisible = true;
-
-toggleBtn.addEventListener("click", () => {
-  cardsVisible = !cardsVisible;
-  cardsEl.style.display = cardsVisible ? "flex" : "none";
-  toggleBtn.textContent = cardsVisible ? "👁 Masquer tableau" : "👁‍🗨 Afficher tableau";
-});
-
-// Toggle masquer/afficher la légende du graphique
+// Toggle masquer/afficher la légende du graphique (données détaillées par jour)
 const toggleLegendBtn = document.getElementById("toggle-legend-btn");
 
 toggleLegendBtn.addEventListener("click", () => {
   legendVisible = !legendVisible;
-  toggleLegendBtn.textContent = legendVisible ? "◼ Masquer légende" : "◼ Afficher légende";
+  toggleLegendBtn.textContent = legendVisible ? "◼ Masquer données" : "◼ Afficher données";
   loadAndRender();
 });
 
@@ -760,7 +749,7 @@ async function fetchDayDetails(date, elevationParam, mode){
   }
 }
 
-let legendVisible = true;
+let legendVisible = false;
 
 async function loadAndRender(){
   const myId = ++requestId;
@@ -791,11 +780,12 @@ async function loadAndRender(){
       const start = `${year}-01-01`;
       // Limiter à hier si c'est l'année en cours
       const end = parseInt(year) === currentYear ? yesterdayISO : `${year}-12-31`;
-      const url = `https://archive-api.open-meteo.com/v1/archive?latitude=${currentCity.lat}&longitude=${currentCity.lon}&start_date=${start}&end_date=${end}&daily=snowfall_sum,precipitation_sum,temperature_2m_max,temperature_2m_min,weather_code&hourly=snow_depth,freezing_level_height&timezone=auto${elevationParam}`;
+      const url = `https://archive-api.open-meteo.com/v1/archive?latitude=${currentCity.lat}&longitude=${currentCity.lon}&start_date=${start}&end_date=${end}&daily=snowfall_sum,precipitation_sum,temperature_2m_max,temperature_2m_min,relative_humidity_2m,weather_code&hourly=snow_depth,freezing_level_height&timezone=auto${elevationParam}`;
       const res = await fetch(url);
       const data = await res.json();
       if(myId !== requestId) return;
 
+      allData[year] = {}; // Initialiser même si le fetch échoue
       if(!data.daily || !data.daily.time) continue;
 
       // Traiter cette année
@@ -826,6 +816,7 @@ async function loadAndRender(){
       dates.forEach((t,i) => {
         const snow = data.daily.snowfall_sum ? data.daily.snowfall_sum[i] : null;
         const max = data.daily.temperature_2m_max[i];
+        const humidity = data.daily.relative_humidity_2m ? data.daily.relative_humidity_2m[i] : null;
 
         if(snow === null || max === null) return;
 
@@ -847,7 +838,7 @@ async function loadAndRender(){
         const day = String(dateObj.getDate()).padStart(2, '0');
         const key = `${month}-${day}`;
 
-        allData[year][key] = { snow, remaining };
+        allData[year][key] = { snow, remaining, humidity };
       });
     }
 
@@ -868,12 +859,14 @@ async function loadAndRender(){
       allDays.push({ key, label: dayLabel });
     }
 
-    // Regrouper par jour : { "01-15": { label: "Lun 15", "2023": {snow, remaining}, ...}, ...}
+    // Regrouper par jour : { "01-15": { label: "Lun 15", "2023": {snow, remaining, humidity}, ...}, ...}
     const byDay = {};
     allDays.forEach(({ key, label }) => {
       byDay[key] = { label };
       selectedYears.forEach(year => {
-        byDay[key][year] = allData[year][key] || { snow: null, remaining: null };
+        byDay[key][year] = (allData[year] && allData[year][key]) 
+          ? allData[year][key] 
+          : { snow: null, remaining: null, humidity: null };
       });
     });
 
@@ -894,7 +887,27 @@ async function loadAndRender(){
 }
 
 function renderComparatorChart(byDay, selectedYears, legendVisible){
-  const ctx = document.getElementById("snowChart").getContext("2d");
+  const ctx = document.getElementById("snowChart");
+  if(!ctx){
+    console.error("Canvas snowChart not found");
+    return;
+  }
+  
+  const dayKeys = Object.keys(byDay).sort();
+  if(dayKeys.length === 0){
+    console.error("No days found in byDay. byDay keys:", Object.keys(byDay));
+    chartStatusEl.style.display = "flex";
+    chartStatusEl.textContent = "Aucun jour trouvé pour cette semaine.";
+    return;
+  }
+  if(!selectedYears || selectedYears.length === 0){
+    console.error("No selected years");
+    chartStatusEl.style.display = "flex";
+    chartStatusEl.textContent = "Sélectionne au moins une année.";
+    return;
+  }
+  
+  const canvasCtx = ctx.getContext("2d");
   
   // Palette de couleurs pour chaque année
   const YEAR_COLORS = { 
@@ -903,8 +916,15 @@ function renderComparatorChart(byDay, selectedYears, legendVisible){
   };
   
   // Créer les labels à partir de byDay (qui contient déjà le libellé du jour)
-  const dayKeys = Object.keys(byDay);
   const labels = dayKeys.map(key => byDay[key].label);
+  
+  // Calculer l'humidité moyenne pour chaque jour (moyenne de toutes les années)
+  const avgHumidityData = dayKeys.map(day => {
+    const humidities = selectedYears
+      .map(year => byDay[day][year]?.humidity)
+      .filter(h => h !== null && h !== undefined);
+    return humidities.length ? humidities.reduce((a, b) => a + b, 0) / humidities.length : null;
+  });
   
   // Créer un dataset pour chaque année × type (snow/remaining)
   const datasets = [];
@@ -941,8 +961,24 @@ function renderComparatorChart(byDay, selectedYears, legendVisible){
     });
   });
   
+  // Ajouter la courbe d'humidité moyenne
+  datasets.push({
+    type: "line",
+    label: "Humidité moyenne (%)",
+    data: avgHumidityData,
+    borderColor: "#90ee90",
+    backgroundColor: "rgba(144, 238, 144, 0.08)",
+    pointRadius: 0,
+    borderWidth: 2,
+    tension: 0.3,
+    yAxisID: "y2",
+    order: 3,
+    spanGaps: true,
+    fill: false,
+  });
+  
   if(chart) chart.destroy();
-  chart = new Chart(ctx, {
+  chart = new Chart(canvasCtx, {
     data: { labels, datasets },
     options: {
       responsive:true, maintainAspectRatio:false,
@@ -956,6 +992,7 @@ function renderComparatorChart(byDay, selectedYears, legendVisible){
           callbacks:{
             label: (item) => {
               if(item.raw === null || item.raw === undefined) return `${item.dataset.label} : —`;
+              if(item.dataset.label.includes("Humidité")) return `${item.dataset.label} : ${item.raw.toFixed(1)} %`;
               return `${item.dataset.label} : ${item.raw.toFixed(1)} cm`;
             },
           }
@@ -971,6 +1008,14 @@ function renderComparatorChart(byDay, selectedYears, legendVisible){
           grid:{ color:"#152539" },
           ticks:{ color:"#83a0b8", font:{ family:"IBM Plex Mono", size:11 }, callback: v => v + " cm" },
           title:{ display:true, text:"Neige (cm)", color:"#83a0b8", font:{ family:"IBM Plex Mono", size:10 } },
+        },
+        y2:{
+          position:"right",
+          grid:{ display:false },
+          min: 0,
+          max: 100,
+          ticks:{ color:"#90ee90", font:{ family:"IBM Plex Mono", size:11 }, callback: v => v + "%" },
+          title:{ display:true, text:"Humidité (%)", color:"#90ee90", font:{ family:"IBM Plex Mono", size:10 } },
         },
       },
     },
