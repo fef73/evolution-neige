@@ -780,7 +780,7 @@ async function loadAndRender(){
       const start = `${year}-01-01`;
       // Limiter à hier si c'est l'année en cours
       const end = parseInt(year) === currentYear ? yesterdayISO : `${year}-12-31`;
-      const url = `https://archive-api.open-meteo.com/v1/archive?latitude=${currentCity.lat}&longitude=${currentCity.lon}&start_date=${start}&end_date=${end}&daily=snowfall_sum,precipitation_sum,temperature_2m_max,temperature_2m_min,relative_humidity_2m,weather_code&hourly=snow_depth,freezing_level_height&timezone=auto${elevationParam}`;
+      const url = `https://archive-api.open-meteo.com/v1/archive?latitude=${currentCity.lat}&longitude=${currentCity.lon}&start_date=${start}&end_date=${end}&daily=snowfall_sum,precipitation_sum,temperature_2m_max,temperature_2m_min,weather_code&hourly=snow_depth,freezing_level_height,relative_humidity_2m&timezone=auto${elevationParam}`;
       const res = await fetch(url);
       const data = await res.json();
       if(myId !== requestId) return;
@@ -790,18 +790,32 @@ async function loadAndRender(){
 
       // Traiter cette année
       const depthByDate = {};
+      const humidityByDate = {};
       let depthSamples = 0;
-      if(data.hourly && Array.isArray(data.hourly.time) && Array.isArray(data.hourly.snow_depth)){
-        data.hourly.time.forEach((t, i) => {
-          const v = data.hourly.snow_depth[i];
-          if(v === null || v === undefined) return;
-          const [d, hourPart] = t.split("T");
-          const hour = parseInt(hourPart, 10);
-          if(!depthByDate[d] || hour >= depthByDate[d].hour){
-            depthByDate[d] = { hour, value: v };
-          }
-          depthSamples++;
-        });
+      if(data.hourly && Array.isArray(data.hourly.time)){
+        if(Array.isArray(data.hourly.snow_depth)){
+          data.hourly.time.forEach((t, i) => {
+            const v = data.hourly.snow_depth[i];
+            if(v === null || v === undefined) return;
+            const [d, hourPart] = t.split("T");
+            const hour = parseInt(hourPart, 10);
+            if(!depthByDate[d] || hour >= depthByDate[d].hour){
+              depthByDate[d] = { hour, value: v };
+            }
+            depthSamples++;
+          });
+        }
+        // Calculer l'humidité moyenne par jour à partir des données horaires
+        if(Array.isArray(data.hourly.relative_humidity_2m)){
+          data.hourly.time.forEach((t, i) => {
+            const h = data.hourly.relative_humidity_2m[i];
+            if(h === null || h === undefined) return;
+            const d = t.split("T")[0];
+            if(!humidityByDate[d]) humidityByDate[d] = { sum: 0, count: 0 };
+            humidityByDate[d].sum += h;
+            humidityByDate[d].count++;
+          });
+        }
       }
 
       const dates = data.daily.time;
@@ -816,7 +830,7 @@ async function loadAndRender(){
       dates.forEach((t,i) => {
         const snow = data.daily.snowfall_sum ? data.daily.snowfall_sum[i] : null;
         const max = data.daily.temperature_2m_max[i];
-        const humidity = data.daily.relative_humidity_2m ? data.daily.relative_humidity_2m[i] : null;
+        const humidity = humidityByDate[t] ? humidityByDate[t].sum / humidityByDate[t].count : null;
 
         if(snow === null || max === null) return;
 
@@ -864,11 +878,27 @@ async function loadAndRender(){
     allDays.forEach(({ key, label }) => {
       byDay[key] = { label };
       selectedYears.forEach(year => {
-        byDay[key][year] = (allData[year] && allData[year][key]) 
-          ? allData[year][key] 
+        const yearData = allData[year] && allData[year][key];
+        byDay[key][year] = yearData 
+          ? yearData 
           : { snow: null, remaining: null, humidity: null };
       });
     });
+
+    console.log("allDays:", allDays);
+    console.log("allData keys:", Object.keys(allData));
+    selectedYears.forEach(y => {
+      console.log(`allData[${y}] keys:`, allData[y] ? Object.keys(allData[y]).slice(0, 10) : "undefined");
+    });
+    console.log("byDay keys:", Object.keys(byDay));
+    
+    const dayKeys = Object.keys(byDay).sort();
+    if(dayKeys.length === 0){
+      console.error("No days found in byDay. byDay:", byDay, "allDays:", allDays);
+      chartStatusEl.style.display = "flex";
+      chartStatusEl.textContent = "Aucun jour trouvé pour cette semaine.";
+      return;
+    }
 
     chartStatusEl.style.display = "none";
     renderComparatorChart(byDay, selectedYears, legendVisible);
