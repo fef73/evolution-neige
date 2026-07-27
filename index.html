@@ -1018,7 +1018,7 @@ function renderComparatorChart(byDay, selectedYears, legendVisible){
       data: rainData,
       backgroundColor: "#0277bd", // Bleu foncé pour la pluie
       borderRadius: 2,
-      yAxisID: "y",
+      yAxisID: "y5",
       order: 2,
       spanGaps: false,
     });
@@ -1077,9 +1077,14 @@ function renderComparatorChart(byDay, selectedYears, legendVisible){
           backgroundColor:"#132842", borderColor:"#1e3348", borderWidth:1,
           titleFont:{ family:"Space Grotesk" }, bodyFont:{ family:"IBM Plex Mono", size:12 },
           padding:10, titleColor:"#f2f8fb", bodyColor:"#f2f8fb",
+          filter: (context) => {
+            const value = context.raw;
+            return value !== null && value !== undefined && value !== 0;
+          },
           callbacks:{
             label: (item) => {
               if(item.raw === null || item.raw === undefined) return `${item.dataset.label} : —`;
+              if(item.dataset.label.includes("pluie")) return `${item.dataset.label} : ${item.raw.toFixed(1)} mm`;
               if(item.dataset.label.includes("humidité")) return `${item.dataset.label} : ${item.raw.toFixed(1)} %`;
               if(item.dataset.label.includes("temp.")) return `${item.dataset.label} : ${item.raw.toFixed(1)} °C`;
               if(item.dataset.label.includes("isotherme")) return `${item.dataset.label} : ${item.raw.toFixed(0)} m`;
@@ -1118,6 +1123,13 @@ function renderComparatorChart(byDay, selectedYears, legendVisible){
           grid:{ display:false },
           ticks:{ color:"#c9a6ff", font:{ family:"IBM Plex Mono", size:11 }, callback: v => v + " m" },
           title:{ display:true, text:"Isotherme 0°C (m)", color:"#c9a6ff", font:{ family:"IBM Plex Mono", size:10 } },
+        },
+        y5:{
+          position:"right",
+          grid:{ display:false },
+          min: 0,
+          ticks:{ color:"#0277bd", font:{ family:"IBM Plex Mono", size:11 }, callback: v => v + " mm" },
+          title:{ display:true, text:"Pluie (mm)", color:"#0277bd", font:{ family:"IBM Plex Mono", size:10 } },
         },
       },
     },
