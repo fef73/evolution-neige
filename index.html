@@ -415,9 +415,11 @@
       <img id="photo-img" style="display:none;" alt="Photo neige du jour">
     </div>
     <div class="photo-actions">
-      <button class="btn btn-primary" id="photo-add-btn">📷 Choisir une photo</button>
+      <button class="btn btn-primary" id="photo-camera-btn">📷 Prendre une photo</button>
+      <button class="btn btn-primary" id="photo-gallery-btn">🖼️ Rechercher une photo</button>
       <button class="btn" id="photo-delete-btn" style="display:none;">🗑 Supprimer</button>
-      <input type="file" id="photo-file-input" accept="image/*" capture="environment" style="display:none;">
+      <input type="file" id="photo-camera-input" accept="image/*" capture="environment" style="display:none;">
+      <input type="file" id="photo-gallery-input" accept="image/*" style="display:none;">
     </div>
     <div class="photo-hint">
       Un site web ne peut pas parcourir ta galerie tout seul : tu choisis la photo (galerie ou appareil photo),
@@ -1259,9 +1261,11 @@ document.getElementById("share-btn").addEventListener("click", async () => {
   const todayBtn = document.getElementById("photo-today-btn");
   const placeholderEl = document.getElementById("photo-placeholder");
   const imgEl = document.getElementById("photo-img");
-  const addBtn = document.getElementById("photo-add-btn");
+  const cameraBtn = document.getElementById("photo-camera-btn");
+  const galleryBtn = document.getElementById("photo-gallery-btn");
   const deleteBtn = document.getElementById("photo-delete-btn");
-  const fileInput = document.getElementById("photo-file-input");
+  const cameraInput = document.getElementById("photo-camera-input");
+  const galleryInput = document.getElementById("photo-gallery-input");
 
   if(!dayEl || !monthEl || !yearEl) return;
 
@@ -1363,9 +1367,7 @@ document.getElementById("share-btn").addEventListener("click", async () => {
   [dayEl, monthEl, yearEl].forEach(el => el.addEventListener("change", refreshPhoto));
   if(todayBtn) todayBtn.addEventListener("click", () => { setSelectsToToday(); refreshPhoto(); });
 
-  addBtn.addEventListener("click", () => fileInput.click());
-  fileInput.addEventListener("change", async () => {
-    const file = fileInput.files && fileInput.files[0];
+  async function handlePhotoFile(file){
     if(!file) return;
     try{
       await savePhoto(currentDateKey(), file);
@@ -1374,7 +1376,20 @@ document.getElementById("share-btn").addEventListener("click", async () => {
       alert("Impossible d'enregistrer la photo sur cet appareil.");
       console.error(e);
     }
-    fileInput.value = "";
+  }
+
+  cameraBtn.addEventListener("click", () => cameraInput.click());
+  cameraInput.addEventListener("change", async () => {
+    const file = cameraInput.files && cameraInput.files[0];
+    await handlePhotoFile(file);
+    cameraInput.value = "";
+  });
+
+  galleryBtn.addEventListener("click", () => galleryInput.click());
+  galleryInput.addEventListener("change", async () => {
+    const file = galleryInput.files && galleryInput.files[0];
+    await handlePhotoFile(file);
+    galleryInput.value = "";
   });
 
   deleteBtn.addEventListener("click", async () => {
