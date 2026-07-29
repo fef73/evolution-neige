@@ -193,6 +193,13 @@
     text-align:center; padding:16px; line-height:1.5;
   }
   .photo-actions{display:flex; gap:8px; flex-wrap:wrap;}
+  .photo-sync-btn{
+    font-family:'IBM Plex Mono', monospace; font-size:11px;
+    background:var(--bg-input); color:var(--text-hi); border:1px solid var(--hairline);
+    border-radius:6px; padding:6px 10px; cursor:pointer;
+    transition:border-color .15s ease, color .15s ease;
+  }
+  .photo-sync-btn:hover{border-color:var(--live); color:var(--live);}
   .photo-hint{
     font-family:'IBM Plex Mono', monospace; font-size:11px; color:var(--text-lo);
     margin-top:10px; line-height:1.6;
@@ -404,11 +411,14 @@
     <div class="period-label">📷 Photo neige du jour</div>
     <div class="photo-date-row">
       <div class="date-selects">
+        <button class="btn" id="photo-minus-btn" style="padding:8px 12px;">−</button>
         <select id="photo-day" class="sel-day"></select>
         <select id="photo-month" class="sel-month"></select>
         <select id="photo-year" class="sel-year"></select>
+        <button class="btn" id="photo-plus-btn" style="padding:8px 12px;">+</button>
       </div>
       <button class="btn" id="photo-today-btn">Aujourd'hui</button>
+      <span id="photo-week-display" style="font-family:'IBM Plex Mono', monospace; font-size:11px; color:var(--text-lo); white-space:nowrap;"></span>
     </div>
     <div class="photo-frame" id="photo-frame">
       <div class="photo-placeholder" id="photo-placeholder">Aucune photo enregistrée pour cette date</div>
@@ -418,6 +428,8 @@
       <button class="btn btn-primary" id="photo-camera-btn">📷 Prendre une photo</button>
       <button class="btn btn-primary" id="photo-gallery-btn">🖼️ Rechercher une photo</button>
       <button class="btn" id="photo-delete-btn" style="display:none;">🗑 Supprimer</button>
+      <button class="photo-sync-btn" id="photo-to-chart-btn" title="Afficher le tableau pour cette date">↓ Afficher semaine</button>
+      <button class="photo-sync-btn" id="chart-to-photo-btn" title="Afficher la photo de cette semaine (année précédente)">↑ Afficher photo</button>
       <input type="file" id="photo-camera-input" accept="image/*" capture="environment" style="display:none;">
       <input type="file" id="photo-gallery-input" accept="image/*" style="display:none;">
     </div>
@@ -671,6 +683,35 @@ function formatLong(iso){
   return new Date(iso + "T00:00:00").toLocaleDateString("fr-FR", { day:"numeric", month:"long", year:"numeric" });
 }
 
+// Fonction pour synchroniser le changement de semaine vers la photo
+function syncPhotoToWeek(){
+  const weekNum = parseInt(document.getElementById("week-number").value, 10);
+  
+  // Récupérer la dernière année sélectionnée
+  const selectedYearsEls = Array.from(document.querySelectorAll(".year-check:checked"));
+  if(selectedYearsEls.length === 0) return;
+  const lastYear = Math.max(...selectedYearsEls.map(el => parseInt(el.value, 10)));
+  
+  // Convertir semaine + année en date du lundi de cette semaine
+  const d = new Date(lastYear, 0, 1);
+  const diff = d.getDay() - 1; // 0 = lundi
+  const firstMonday = new Date(d.getTime() - diff * 86400000);
+  const mondayOfWeek = new Date(firstMonday.getTime() + (weekNum - 1) * 7 * 86400000);
+  
+  // Mettre à jour les sélecteurs photo
+  const dayEl = document.getElementById("photo-day");
+  const monthEl = document.getElementById("photo-month");
+  const yearEl = document.getElementById("photo-year");
+  if(dayEl && monthEl && yearEl){
+    dayEl.value = mondayOfWeek.getDate();
+    monthEl.value = mondayOfWeek.getMonth() + 1;
+    yearEl.value = mondayOfWeek.getFullYear();
+    // Déclencher l'actualisation si disponible
+    if(typeof window.photoUpdateWeek === "function") window.photoUpdateWeek();
+    if(typeof window.photoRefresh === "function") window.photoRefresh();
+  }
+}
+
 let requestId = 0;
 
 // Fonction pour calculer les dates de début/fin de semaine
@@ -702,6 +743,7 @@ weekSlider.addEventListener("input", (e) => {
   weekInput.value = e.target.value;
   weekDisplay.textContent = formatWeekDisplay(parseInt(e.target.value, 10));
   loadAndRender();
+  syncPhotoToWeek();
 });
 
 weekInput.addEventListener("change", (e) => {
@@ -710,6 +752,7 @@ weekInput.addEventListener("change", (e) => {
   weekInput.value = val;
   weekDisplay.textContent = formatWeekDisplay(val);
   loadAndRender();
+  syncPhotoToWeek();
 });
 
 // Boutons +/- pour la semaine
@@ -719,6 +762,7 @@ document.getElementById("week-minus").addEventListener("click", () => {
   weekInput.value = val;
   weekDisplay.textContent = formatWeekDisplay(val);
   loadAndRender();
+  syncPhotoToWeek();
 });
 
 document.getElementById("week-plus").addEventListener("click", () => {
@@ -727,6 +771,7 @@ document.getElementById("week-plus").addEventListener("click", () => {
   weekInput.value = val;
   weekDisplay.textContent = formatWeekDisplay(val);
   loadAndRender();
+  syncPhotoToWeek();
 });
 
 // Toggle masquer/afficher les cartes statistiques
@@ -1218,7 +1263,10 @@ document.getElementById("refresh-btn").addEventListener("click", loadAndRender);
 
 // Écouter les changements de sélection d'années
 document.querySelectorAll(".year-check").forEach(checkbox => {
-  checkbox.addEventListener("change", loadAndRender);
+  checkbox.addEventListener("change", () => {
+    loadAndRender();
+    syncPhotoToWeek();
+  });
 });
 
 
@@ -1259,6 +1307,8 @@ document.getElementById("share-btn").addEventListener("click", async () => {
   const monthEl = document.getElementById("photo-month");
   const yearEl = document.getElementById("photo-year");
   const todayBtn = document.getElementById("photo-today-btn");
+  const minusBtn = document.getElementById("photo-minus-btn");
+  const plusBtn = document.getElementById("photo-plus-btn");
   const placeholderEl = document.getElementById("photo-placeholder");
   const imgEl = document.getElementById("photo-img");
   const cameraBtn = document.getElementById("photo-camera-btn");
@@ -1266,6 +1316,7 @@ document.getElementById("share-btn").addEventListener("click", async () => {
   const deleteBtn = document.getElementById("photo-delete-btn");
   const cameraInput = document.getElementById("photo-camera-input");
   const galleryInput = document.getElementById("photo-gallery-input");
+  const weekDisplayEl = document.getElementById("photo-week-display");
 
   if(!dayEl || !monthEl || !yearEl) return;
 
@@ -1344,6 +1395,17 @@ document.getElementById("share-btn").addEventListener("click", async () => {
   }
 
   let currentObjectUrl = null;
+  
+  function updateWeekDisplay(){
+    // Afficher le numéro de semaine correspondant à la date sélectionnée
+    if(!weekDisplayEl) return;
+    const day = parseInt(dayEl.value, 10);
+    const month = parseInt(monthEl.value, 10);
+    const year = parseInt(yearEl.value, 10);
+    const weekNum = dateToWeekNumber(day, month, year);
+    weekDisplayEl.textContent = `(Semaine ${weekNum})`;
+  }
+
   async function refreshPhoto(){
     let blob = null;
     try{ blob = await loadPhotoBlob(currentDateKey()); }
@@ -1362,9 +1424,33 @@ document.getElementById("share-btn").addEventListener("click", async () => {
       placeholderEl.style.display = "block";
       deleteBtn.style.display = "none";
     }
+    updateWeekDisplay();
   }
 
   [dayEl, monthEl, yearEl].forEach(el => el.addEventListener("change", refreshPhoto));
+  
+  // Exposer refreshPhoto et updateWeekDisplay globalement pour syncPhotoToWeek()
+  window.photoRefresh = refreshPhoto;
+  window.photoUpdateWeek = updateWeekDisplay;
+  
+  minusBtn.addEventListener("click", () => {
+    const date = new Date(yearEl.value, monthEl.value - 1, dayEl.value);
+    date.setDate(date.getDate() - 1);
+    dayEl.value = date.getDate();
+    monthEl.value = date.getMonth() + 1;
+    yearEl.value = date.getFullYear();
+    refreshPhoto();
+  });
+
+  plusBtn.addEventListener("click", () => {
+    const date = new Date(yearEl.value, monthEl.value - 1, dayEl.value);
+    date.setDate(date.getDate() + 1);
+    dayEl.value = date.getDate();
+    monthEl.value = date.getMonth() + 1;
+    yearEl.value = date.getFullYear();
+    refreshPhoto();
+  });
+  
   if(todayBtn) todayBtn.addEventListener("click", () => { setSelectsToToday(); refreshPhoto(); });
 
   async function handlePhotoFile(file){
@@ -1398,6 +1484,67 @@ document.getElementById("share-btn").addEventListener("click", async () => {
       await deletePhotoBlob(currentDateKey());
       await refreshPhoto();
     }catch(e){ console.error(e); }
+  });
+
+  // ---- Synchronisation photo ↔ tableau ----
+  function dateToWeekNumber(day, month, year){
+    // Convertir jour/mois/année en numéro de semaine ISO (1-52)
+    const date = new Date(year, month - 1, day);
+    const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+    const dayNum = d.getUTCDay() || 7; // 1-7, lundi-dimanche
+    d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+    const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+    const weekNum = Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+    return Math.max(1, Math.min(52, weekNum));
+  }
+
+  function weekNumberToDate(weekNumber){
+    // Convertir numéro de semaine en date du lundi (ISO 8601)
+    const year = new Date().getFullYear();
+    const d = new Date(year, 0, 1);
+    const diff = d.getDay() - 1; // 0 = lundi
+    const firstMonday = new Date(d.getTime() - diff * 86400000);
+    const mondayOfWeek = new Date(firstMonday.getTime() + (weekNumber - 1) * 7 * 86400000);
+    return mondayOfWeek;
+  }
+
+  const photoToChartBtn = document.getElementById("photo-to-chart-btn");
+  const chartToPhotoBtn = document.getElementById("chart-to-photo-btn");
+
+  photoToChartBtn.addEventListener("click", () => {
+    // Photo → Tableau : convertir jour/mois en semaine
+    const day = parseInt(dayEl.value, 10);
+    const month = parseInt(monthEl.value, 10);
+    const year = parseInt(yearEl.value, 10);
+    const weekNum = dateToWeekNumber(day, month, year);
+    
+    // Mise à jour visuelle du bouton
+    photoToChartBtn.textContent = `↓ Semaine ${weekNum}`;
+    setTimeout(() => { photoToChartBtn.textContent = "↓ Afficher semaine"; }, 1500);
+    
+    // Simuler le changement du slider (qui déclenche les event listeners)
+    weekSlider.value = weekNum;
+    weekInput.value = weekNum;
+    weekSlider.dispatchEvent(new Event("input"));
+  });
+
+  chartToPhotoBtn.addEventListener("click", () => {
+    // Tableau → Photo : convertir semaine en jour/mois, charger photo année précédente
+    const weekNum = parseInt(weekSlider.value, 10);
+    const dateOfWeek = weekNumberToDate(weekNum);
+    const day = dateOfWeek.getDate();
+    const month = dateOfWeek.getMonth() + 1;
+    const year = dateOfWeek.getFullYear();
+
+    dayEl.value = day;
+    monthEl.value = month;
+    yearEl.value = year - 1; // Année précédente
+    
+    // Mise à jour visuelle du bouton
+    chartToPhotoBtn.textContent = `↑ ${day}/${month}/${year - 1}`;
+    setTimeout(() => { chartToPhotoBtn.textContent = "↑ Afficher photo"; }, 1500);
+    
+    refreshPhoto();
   });
 
   refreshPhoto();
