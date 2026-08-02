@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Comparateur — Neige sur 5 ans</title>
+<title>Evolution - Chutes de neige</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Space+Grotesk:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
@@ -204,6 +204,33 @@
     font-family:'IBM Plex Mono', monospace; font-size:11px; color:var(--text-lo);
     margin-top:10px; line-height:1.6;
   }
+  
+  .photo-info{
+    background:var(--bg-input); border:1px solid var(--hairline); border-radius:8px;
+    padding:12px; margin:12px 0; font-family:'IBM Plex Mono', monospace; font-size:11px;
+  }
+  .photo-info-line{display:flex; gap:8px; margin-bottom:8px; flex-wrap:wrap; align-items:center;}
+  .photo-info-label{color:var(--text-lo); min-width:80px;}
+  .photo-info-value{color:var(--live); word-break:break-all;}
+  .photo-gps-link{color:var(--live); text-decoration:none; cursor:pointer; border-bottom:1px dotted var(--live);}
+  .photo-gps-link:hover{text-decoration:underline;}
+  
+  .photo-gallery{margin-top:14px;}
+  .photo-gallery-title{font-family:'IBM Plex Mono', monospace; font-size:11px; color:var(--text-lo); text-transform:uppercase; margin-bottom:8px;}
+  .photo-gallery-grid{display:grid; grid-template-columns:repeat(auto-fill, minmax(80px, 1fr)); gap:8px; margin-top:8px;}
+  .photo-gallery-item{
+    position:relative; width:80px; height:80px; border:1px solid var(--hairline); border-radius:6px;
+    overflow:hidden; cursor:pointer; background:var(--bg-input); transition:border-color 0.2s;
+  }
+  .photo-gallery-item:hover{border-color:var(--live);}
+  .photo-gallery-item img{width:100%; height:100%; object-fit:cover;}
+  .photo-gallery-item.active{border:2px solid var(--live);}
+  .photo-gallery-btn{
+    font-family:'IBM Plex Mono', monospace; font-size:11px;
+    background:var(--bg-input); color:var(--text-hi); border:1px solid var(--hairline);
+    border-radius:6px; padding:6px 10px; cursor:pointer; margin-top:8px;
+  }
+  .photo-gallery-btn:hover{border-color:var(--live); color:var(--live);}
 
   .toolbar{
     display:flex; justify-content:space-between; align-items:center; gap:12px;
@@ -325,7 +352,7 @@
 
   <header>
     <div class="eyebrow"><span class="pulse"></span> relevé climatique — open-meteo</div>
-    <h1>Comparateur de neige</h1>
+    <h1>Evolution - Chutes de neige</h1>
     <div class="subtitle">Choisis une ville (ou station de ski) et compare les chutes de neige jour après jour sur les 5 dernières années — neige du jour et cumul au sol côte à côte pour mesurer les variations d'une année à l'autre.</div>
   </header>
 
@@ -424,6 +451,29 @@
       <div class="photo-placeholder" id="photo-placeholder">Aucune photo enregistrée pour cette date</div>
       <img id="photo-img" style="display:none;" alt="Photo neige du jour">
     </div>
+    
+    <div id="photo-info-panel" style="display:none;">
+      <div class="photo-info">
+        <div class="photo-info-line">
+          <span class="photo-info-label">Fichier :</span>
+          <span class="photo-info-value" id="photo-filename"></span>
+        </div>
+        <div class="photo-info-line" id="photo-gps-line" style="display:none;">
+          <span class="photo-info-label">GPS :</span>
+          <a class="photo-gps-link" id="photo-gps-link" target="_blank"></a>
+        </div>
+        <div class="photo-info-line" id="photo-date-line" style="display:none;">
+          <span class="photo-info-label">Date :</span>
+          <span class="photo-info-value" id="photo-date-value"></span>
+        </div>
+      </div>
+    </div>
+    
+    <div class="photo-gallery" id="photo-gallery-panel" style="display:none;">
+      <div class="photo-gallery-title">Photos de cette semaine</div>
+      <button class="photo-gallery-btn" id="photo-load-week-btn">Charger les photos de la semaine</button>
+      <div class="photo-gallery-grid" id="photo-gallery-grid"></div>
+    </div>
     <div class="photo-actions">
       <button class="btn btn-primary" id="photo-camera-btn">📷 Prendre une photo</button>
       <button class="btn btn-primary" id="photo-gallery-btn">🖼️ Rechercher une photo</button>
@@ -432,6 +482,7 @@
       <button class="photo-sync-btn" id="chart-to-photo-btn" title="Afficher la photo de cette semaine (année précédente)">↑ Afficher photo</button>
       <input type="file" id="photo-camera-input" accept="image/*" capture="environment" style="display:none;">
       <input type="file" id="photo-gallery-input" accept="image/*" style="display:none;">
+      <input type="file" id="photo-folder-input" webkitdirectory directory mozdirectory multiple style="display:none;">
     </div>
     <div class="photo-hint">
       Un site web ne peut pas parcourir ta galerie tout seul : tu choisis la photo (galerie ou appareil photo),
@@ -1366,11 +1417,15 @@ document.getElementById("share-btn").addEventListener("click", async () => {
     });
     return dbPromise;
   }
-  async function savePhoto(key, blob){
+  async function savePhoto(key, file){
     const db = await openDb();
     return new Promise((resolve, reject) => {
       const tx = db.transaction("photos", "readwrite");
-      tx.objectStore("photos").put(blob, key);
+      const photoData = {
+        blob: file,
+        filename: file.name || "photo.jpg"
+      };
+      tx.objectStore("photos").put(photoData, key);
       tx.oncomplete = () => resolve();
       tx.onerror = () => reject(tx.error);
     });
@@ -1407,24 +1462,74 @@ document.getElementById("share-btn").addEventListener("click", async () => {
   }
 
   async function refreshPhoto(){
-    let blob = null;
-    try{ blob = await loadPhotoBlob(currentDateKey()); }
+    let photoData = null;
+    try{ photoData = await loadPhotoBlob(currentDateKey()); }
     catch(e){ console.error("Photo neige du jour :", e); }
 
     if(currentObjectUrl){ URL.revokeObjectURL(currentObjectUrl); currentObjectUrl = null; }
 
-    if(blob){
+    if(photoData){
+      const blob = photoData.blob || photoData; // Retrocompatibilité ancien format
+      const filename = photoData.filename || "photo.jpg";
+      
       currentObjectUrl = URL.createObjectURL(blob);
       imgEl.src = currentObjectUrl;
       imgEl.style.display = "block";
       placeholderEl.style.display = "none";
       deleteBtn.style.display = "inline-block";
+      
+      // Afficher les infos (filename, GPS, date)
+      showPhotoInfo(filename);
     }else{
       imgEl.style.display = "none";
       placeholderEl.style.display = "block";
       deleteBtn.style.display = "none";
+      document.getElementById("photo-info-panel").style.display = "none";
+      document.getElementById("photo-gallery-panel").style.display = "none";
     }
     updateWeekDisplay();
+  }
+  
+  function showPhotoInfo(filename){
+    const infoPanelEl = document.getElementById("photo-info-panel");
+    const filenameEl = document.getElementById("photo-filename");
+    const gpsLineEl = document.getElementById("photo-gps-line");
+    const gpsLinkEl = document.getElementById("photo-gps-link");
+    const dateLineEl = document.getElementById("photo-date-line");
+    const dateValueEl = document.getElementById("photo-date-value");
+    
+    // Afficher le filename
+    filenameEl.textContent = filename;
+    
+    // Extraire GPS du filename (format: YYYYMMDD_HHMMSS_GPSXX.XX_YY.YY.jpg)
+    const gpsMatch = filename.match(/_GPS([-\d.]+)_([-\d.]+)/);
+    if(gpsMatch){
+      const lat = parseFloat(gpsMatch[1]);
+      const lon = parseFloat(gpsMatch[2]);
+      gpsLineEl.style.display = "flex";
+      gpsLinkEl.textContent = `${lat.toFixed(2)}° N, ${lon.toFixed(2)}° E`;
+      gpsLinkEl.href = `https://www.google.com/maps?q=${lat},${lon}`;
+    }else{
+      gpsLineEl.style.display = "none";
+    }
+    
+    // Extraire date du filename (format: YYYYMMDD_HHMMSS)
+    const dateMatch = filename.match(/(\d{4})(\d{2})(\d{2})_(\d{2})(\d{2})(\d{2})/);
+    if(dateMatch){
+      const year = dateMatch[1];
+      const month = dateMatch[2];
+      const day = dateMatch[3];
+      const hour = dateMatch[4];
+      const min = dateMatch[5];
+      const sec = dateMatch[6];
+      dateLineEl.style.display = "flex";
+      dateValueEl.textContent = `${day}/${month}/${year} ${hour}:${min}:${sec}`;
+    }else{
+      dateLineEl.style.display = "none";
+    }
+    
+    infoPanelEl.style.display = "block";
+    document.getElementById("photo-gallery-panel").style.display = "block";
   }
 
   [dayEl, monthEl, yearEl].forEach(el => el.addEventListener("change", refreshPhoto));
@@ -1477,6 +1582,76 @@ document.getElementById("share-btn").addEventListener("click", async () => {
     await handlePhotoFile(file);
     galleryInput.value = "";
   });
+
+  const folderInput = document.getElementById("photo-folder-input");
+  document.getElementById("photo-load-week-btn").addEventListener("click", () => {
+    folderInput.click();
+  });
+
+  folderInput.addEventListener("change", async () => {
+    const files = folderInput.files;
+    if(!files || files.length === 0) return;
+    
+    const weekNum = parseInt(document.getElementById("week-number").value, 10);
+    const year = parseInt(yearEl.value, 10);
+    
+    // Calculer les dates du lundi et dimanche de la semaine
+    const d = new Date(year, 0, 1);
+    const diff = d.getDay() - 1;
+    const firstMonday = new Date(d.getTime() - diff * 86400000);
+    const monday = new Date(firstMonday.getTime() + (weekNum - 1) * 7 * 86400000);
+    const sunday = new Date(monday.getTime() + 6 * 86400000);
+    
+    // Filtrer les fichiers de la semaine
+    const weekPhotos = [];
+    for(let file of files){
+      if(!file.name.match(/\.(jpg|jpeg|png|gif)$/i)) continue;
+      
+      const dateMatch = file.name.match(/(\d{4})(\d{2})(\d{2})/);
+      if(!dateMatch) continue;
+      
+      const year = parseInt(dateMatch[1], 10);
+      const month = parseInt(dateMatch[2], 10);
+      const day = parseInt(dateMatch[3], 10);
+      const date = new Date(year, month - 1, day);
+      
+      if(date >= monday && date <= sunday){
+        weekPhotos.push(file);
+      }
+    }
+    
+    // Afficher la galerie
+    displayPhotoGallery(weekPhotos);
+    folderInput.value = "";
+  });
+
+  function displayPhotoGallery(files){
+    const gridEl = document.getElementById("photo-gallery-grid");
+    gridEl.innerHTML = "";
+    
+    files.sort((a, b) => a.name.localeCompare(b.name));
+    
+    files.forEach(file => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const item = document.createElement("div");
+        item.className = "photo-gallery-item";
+        const img = document.createElement("img");
+        img.src = e.target.result;
+        img.title = file.name;
+        item.appendChild(img);
+        
+        item.addEventListener("click", async () => {
+          await handlePhotoFile(file);
+          document.querySelectorAll(".photo-gallery-item").forEach(el => el.classList.remove("active"));
+          item.classList.add("active");
+        });
+        
+        gridEl.appendChild(item);
+      };
+      reader.readAsDataURL(file);
+    });
+  }
 
   deleteBtn.addEventListener("click", async () => {
     if(!confirm("Supprimer la photo enregistrée pour cette date ?")) return;
