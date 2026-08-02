@@ -7,6 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Space+Grotesk:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <style>
   :root{
     --bg: #070f1a;
@@ -231,6 +232,19 @@
     border-radius:6px; padding:6px 10px; cursor:pointer; margin-top:8px;
   }
   .photo-gallery-btn:hover{border-color:var(--live); color:var(--live);}
+  
+  .export-import-btns{
+    display:flex; gap:10px; margin-top:16px; flex-wrap:wrap;
+  }
+  .export-btn, .import-btn{
+    font-family:'IBM Plex Mono', monospace; font-size:11px;
+    background:var(--bg-panel); color:var(--text-hi); border:1px solid var(--hairline);
+    border-radius:6px; padding:8px 12px; cursor:pointer;
+    transition:border-color 0.2s, background-color 0.2s;
+  }
+  .export-btn:hover{border-color:var(--gold); background:rgba(255,200,87,0.1);}
+  .import-btn:hover{border-color:var(--live); background:rgba(143,227,255,0.1);}
+  #photo-import-input{display:none;}
 
   .toolbar{
     display:flex; justify-content:space-between; align-items:center; gap:12px;
@@ -474,6 +488,13 @@
       <button class="photo-gallery-btn" id="photo-load-week-btn">Charger les photos de la semaine</button>
       <div class="photo-gallery-grid" id="photo-gallery-grid"></div>
     </div>
+    
+    <div class="export-import-btns">
+      <button class="export-btn" id="photo-export-btn">📦 Exporter les photos</button>
+      <button class="import-btn" id="photo-import-btn">📥 Importer les photos</button>
+      <input type="file" id="photo-import-input" accept=".zip" style="display:none;">
+    </div>
+    
     <div class="photo-actions">
       <button class="btn btn-primary" id="photo-camera-btn">📷 Prendre une photo</button>
       <button class="btn btn-primary" id="photo-gallery-btn">🖼️ Rechercher une photo</button>
@@ -1720,6 +1741,113 @@ document.getElementById("share-btn").addEventListener("click", async () => {
     setTimeout(() => { chartToPhotoBtn.textContent = "↑ Afficher photo"; }, 1500);
     
     refreshPhoto();
+  });
+
+  // ---- Export/Import des photos ----
+  async function exportPhotos(){
+    try {
+      const db = await openDb();
+      const tx = db.transaction("photos", "readonly");
+      const store = tx.objectStore("photos");
+      
+      const allPhotos = await new Promise((resolve, reject) => {
+        const req = store.getAll();
+        req.onsuccess = () => resolve(req.result);
+        req.onerror = () => reject(req.error);
+      });
+      
+      if(allPhotos.length === 0){
+        alert("Aucune photo à exporter !");
+        return;
+      }
+      
+      const zip = new JSZip();
+      const photoFolder = zip.folder("photos");
+      const metadata = {};
+      
+      for(let i = 0; i < allPhotos.length; i++){
+        const photoData = allPhotos[i];
+        const blob = photoData.blob || photoData;
+        const filename = photoData.filename || `photo_${i}.jpg`;
+        
+        photoFolder.file(filename, blob);
+        metadata[filename] = {
+          date: new Date().toISOString(),
+          size: blob.size
+        };
+      }
+      
+      zip.file("metadata.json", JSON.stringify(metadata, null, 2));
+      
+      const zipBlob = await zip.generateAsync({type: "blob"});
+      const url = URL.createObjectURL(zipBlob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `photos-export-${new Date().toISOString().split('T')[0]}.zip`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      
+      alert(`Export réussi ! ${allPhotos.length} photos téléchargées.`);
+    }catch(e){
+      alert("Erreur lors de l'export : " + e.message);
+      console.error(e);
+    }
+  }
+  
+  async function importPhotos(zipFile){
+    try {
+      const zip = await JSZip.loadAsync(zipFile);
+      const photosFolder = zip.folder("photos");
+      
+      if(!photosFolder){
+        alert("Fichier ZIP invalide : pas de dossier 'photos'");
+        return;
+      }
+      
+      const files = photosFolder.file(/.+/);
+      let importCount = 0;
+      
+      for(let file of files){
+        if(file.name === "" || file.name.endsWith("/")){
+          continue;
+        }
+        
+        const blob = await file.async("blob");
+        const filename = file.name;
+        
+        try {
+          await savePhoto(filename.replace(/[^0-9\-_\.]/g, ""), {
+            blob: blob,
+            filename: filename
+          });
+          importCount++;
+        }catch(e){
+          console.error("Erreur import " + filename, e);
+        }
+      }
+      
+      alert(`Import réussi ! ${importCount} photos chargées.`);
+      refreshPhoto();
+    }catch(e){
+      alert("Erreur lors de l'import : " + e.message);
+      console.error(e);
+    }
+  }
+  
+  const exportBtn = document.getElementById("photo-export-btn");
+  const importBtn = document.getElementById("photo-import-btn");
+  const importInput = document.getElementById("photo-import-input");
+  
+  exportBtn.addEventListener("click", exportPhotos);
+  importBtn.addEventListener("click", () => importInput.click());
+  importInput.addEventListener("change", async () => {
+    const file = importInput.files && importInput.files[0];
+    if(file){
+      await importPhotos(file);
+      importInput.value = "";
+    }
   });
 
   refreshPhoto();
