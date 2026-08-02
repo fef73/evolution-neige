@@ -1850,7 +1850,39 @@ document.getElementById("share-btn").addEventListener("click", async () => {
     }
   });
 
-  refreshPhoto();
+  // ---- Init photo avec la première disponible ----
+  async function initPhotoWithFirstAvailable(){
+    try {
+      const db = await openDb();
+      const tx = db.transaction("photos", "readonly");
+      const store = tx.objectStore("photos");
+      
+      const allKeys = await new Promise((resolve, reject) => {
+        const req = store.getAllKeys();
+        req.onsuccess = () => resolve(req.result);
+        req.onerror = () => reject(req.error);
+      });
+      
+      if(allKeys.length > 0){
+        // Récupérer la première clé (format: YYYY-MM-DD)
+        const firstKey = allKeys[0];
+        const [year, month, day] = firstKey.split('-');
+        
+        // Mettre à jour les sélecteurs
+        if(year && month && day){
+          dayEl.value = parseInt(day, 10);
+          monthEl.value = parseInt(month, 10);
+          yearEl.value = parseInt(year, 10);
+        }
+      }
+    }catch(e){
+      console.error("Erreur init photo", e);
+    }
+    
+    await refreshPhoto();
+  }
+
+  initPhotoWithFirstAvailable();
 })();
 
 // ---------- Init from URL ----------
