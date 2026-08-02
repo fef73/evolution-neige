@@ -449,7 +449,7 @@
   </div>
 
   <div class="period-panel photo-panel" id="photo-panel">
-    <div class="period-label">📷 Photo neige du jour</div>
+    <div class="period-label">📷 PHOTO</div>
     <div class="photo-date-row">
       <div class="date-selects">
         <button class="btn" id="photo-minus-btn" style="padding:8px 12px;">−</button>
@@ -1501,6 +1501,9 @@ document.getElementById("share-btn").addEventListener("click", async () => {
       
       // Afficher les infos (filename, GPS, date)
       showPhotoInfo(filename);
+      
+      // Mettre à jour le numéro de semaine
+      updateWeekFromPhoto();
     }else{
       imgEl.style.display = "none";
       placeholderEl.style.display = "block";
@@ -1509,6 +1512,19 @@ document.getElementById("share-btn").addEventListener("click", async () => {
       document.getElementById("photo-gallery-panel").style.display = "none";
     }
     updateWeekDisplay();
+  }
+  
+  function updateWeekFromPhoto(){
+    // Convertir la date de la photo en numéro de semaine et mettre à jour le tableau
+    const day = parseInt(dayEl.value, 10);
+    const month = parseInt(monthEl.value, 10);
+    const year = parseInt(yearEl.value, 10);
+    const weekNum = dateToWeekNumber(day, month, year);
+    
+    // Mettre à jour le slider et affichage du tableau
+    weekSlider.value = weekNum;
+    weekInput.value = weekNum;
+    weekSlider.dispatchEvent(new Event("input"));
   }
   
   function showPhotoInfo(filename){
