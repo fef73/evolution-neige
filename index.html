@@ -1854,11 +1854,32 @@ document.getElementById("share-btn").addEventListener("click", async () => {
         // Utiliser juste le nom du fichier (sans chemin)
         const filename = file.name.split('/').pop();
         
+        // Extraire la date du filename (format: YYYYMMDD_HHMMSS)
+        const dateMatch = filename.match(/(\d{4})(\d{2})(\d{2})_(\d{2})(\d{2})(\d{2})/);
+        let dateKey = null;
+        
+        if(dateMatch){
+          const year = dateMatch[1];
+          const month = dateMatch[2];
+          const day = dateMatch[3];
+          // Créer la clé au format YYYY-MM-DD
+          dateKey = `${year}-${month}-${day}`;
+        }
+        
         try {
-          await savePhoto(filename.replace(/[^0-9\-_\.]/g, ""), {
-            blob: blob,
-            filename: filename
-          });
+          if(dateKey){
+            // Si on a une date valide, l'utiliser comme clé
+            await savePhoto(dateKey, {
+              blob: blob,
+              filename: filename
+            });
+          }else{
+            // Sinon, utiliser le nom du fichier
+            await savePhoto(filename.replace(/[^0-9\-_\.]/g, ""), {
+              blob: blob,
+              filename: filename
+            });
+          }
           importCount++;
         }catch(e){
           console.error("Erreur import " + filename, e);
