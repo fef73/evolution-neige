@@ -1829,14 +1829,20 @@ document.getElementById("share-btn").addEventListener("click", async () => {
   async function importPhotos(zipFile){
     try {
       const zip = await JSZip.loadAsync(zipFile);
-      const photosFolder = zip.folder("photos");
       
-      if(!photosFolder){
-        alert("Fichier ZIP invalide : pas de dossier 'photos'");
+      // Chercher d'abord dans un dossier "photos"
+      let files = zip.folder("photos")?.file(/.+/);
+      
+      // Si pas trouvé, chercher tous les fichiers image récursivement
+      if(!files || files.length === 0){
+        files = zip.file(/.+\.(jpg|jpeg|png|gif|JPG|JPEG|PNG|GIF)$/i);
+      }
+      
+      if(!files || files.length === 0){
+        alert("Aucune photo trouvée dans le ZIP !");
         return;
       }
       
-      const files = photosFolder.file(/.+/);
       let importCount = 0;
       
       for(let file of files){
@@ -1845,7 +1851,8 @@ document.getElementById("share-btn").addEventListener("click", async () => {
         }
         
         const blob = await file.async("blob");
-        const filename = file.name;
+        // Utiliser juste le nom du fichier (sans chemin)
+        const filename = file.name.split('/').pop();
         
         try {
           await savePhoto(filename.replace(/[^0-9\-_\.]/g, ""), {
