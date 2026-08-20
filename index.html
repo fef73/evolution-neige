@@ -3,11 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Chutes de neige par semaine sur 6 ans</title>
+<title>Comparateur — Neige sur 5 ans</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Space+Grotesk:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <style>
   :root{
     --bg: #070f1a;
@@ -182,70 +181,6 @@
   .date-selects select.sel-month{width:110px;}
   .date-selects select.sel-year{width:78px;}
 
-  .photo-date-row{display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-bottom:14px;}
-  .photo-frame{
-    position:relative; width:100%; max-width:420px; aspect-ratio:4/3;
-    background:var(--bg-input); border:1px dashed var(--hairline); border-radius:12px;
-    display:flex; align-items:center; justify-content:center; overflow:hidden; margin-bottom:12px;
-  }
-  .photo-frame img{width:100%; height:100%; object-fit:cover; display:block;}
-  .photo-placeholder{
-    color:var(--text-lo); font-family:'IBM Plex Mono', monospace; font-size:12.5px;
-    text-align:center; padding:16px; line-height:1.5;
-  }
-  .photo-actions{display:flex; gap:8px; flex-wrap:wrap;}
-  .photo-sync-btn{
-    font-family:'IBM Plex Mono', monospace; font-size:11px;
-    background:var(--bg-input); color:var(--text-hi); border:1px solid var(--hairline);
-    border-radius:6px; padding:6px 10px; cursor:pointer;
-    transition:border-color .15s ease, color .15s ease;
-  }
-  .photo-sync-btn:hover{border-color:var(--live); color:var(--live);}
-  .photo-hint{
-    font-family:'IBM Plex Mono', monospace; font-size:11px; color:var(--text-lo);
-    margin-top:10px; line-height:1.6;
-  }
-  
-  .photo-info{
-    background:var(--bg-input); border:1px solid var(--hairline); border-radius:8px;
-    padding:12px; margin:12px 0; font-family:'IBM Plex Mono', monospace; font-size:11px;
-  }
-  .photo-info-line{display:flex; gap:8px; margin-bottom:8px; flex-wrap:wrap; align-items:center;}
-  .photo-info-label{color:var(--text-lo); min-width:80px;}
-  .photo-info-value{color:var(--live); word-break:break-all;}
-  .photo-gps-link{color:var(--live); text-decoration:none; cursor:pointer; border-bottom:1px dotted var(--live);}
-  .photo-gps-link:hover{text-decoration:underline;}
-  
-  .photo-gallery{margin-top:14px;}
-  .photo-gallery-title{font-family:'IBM Plex Mono', monospace; font-size:11px; color:var(--text-lo); text-transform:uppercase; margin-bottom:8px;}
-  .photo-gallery-grid{display:grid; grid-template-columns:repeat(auto-fill, minmax(80px, 1fr)); gap:8px; margin-top:8px;}
-  .photo-gallery-item{
-    position:relative; width:80px; height:80px; border:1px solid var(--hairline); border-radius:6px;
-    overflow:hidden; cursor:pointer; background:var(--bg-input); transition:border-color 0.2s;
-  }
-  .photo-gallery-item:hover{border-color:var(--live);}
-  .photo-gallery-item img{width:100%; height:100%; object-fit:cover;}
-  .photo-gallery-item.active{border:2px solid var(--live);}
-  .photo-gallery-btn{
-    font-family:'IBM Plex Mono', monospace; font-size:11px;
-    background:var(--bg-input); color:var(--text-hi); border:1px solid var(--hairline);
-    border-radius:6px; padding:6px 10px; cursor:pointer; margin-top:8px;
-  }
-  .photo-gallery-btn:hover{border-color:var(--live); color:var(--live);}
-  
-  .export-import-btns{
-    display:flex; gap:10px; margin-top:16px; flex-wrap:wrap;
-  }
-  .export-btn, .import-btn{
-    font-family:'IBM Plex Mono', monospace; font-size:11px;
-    background:var(--bg-panel); color:var(--text-hi); border:1px solid var(--hairline);
-    border-radius:6px; padding:8px 12px; cursor:pointer;
-    transition:border-color 0.2s, background-color 0.2s;
-  }
-  .export-btn:hover{border-color:var(--gold); background:rgba(255,200,87,0.1);}
-  .import-btn:hover{border-color:var(--live); background:rgba(143,227,255,0.1);}
-  #photo-import-input{display:none;}
-
   .toolbar{
     display:flex; justify-content:space-between; align-items:center; gap:12px;
     margin-bottom:14px; flex-wrap:wrap;
@@ -366,7 +301,7 @@
 
   <header>
     <div class="eyebrow"><span class="pulse"></span> relevé climatique — open-meteo</div>
-    <h1>Chutes de neige par semaine sur 6 ans</h1>
+    <h1>Comparateur de neige</h1>
     <div class="subtitle">Choisis une ville (ou station de ski) et compare les chutes de neige jour après jour sur les 5 dernières années — neige du jour et cumul au sol côte à côte pour mesurer les variations d'une année à l'autre.</div>
   </header>
 
@@ -445,69 +380,6 @@
     </div>
     <div style="font-size:11px; color:var(--text-lo); margin-top:6px;">
       <span id="week-display">Semaine 1 : du 2 janvier au 8 janvier</span>
-    </div>
-  </div>
-
-  <div class="period-panel photo-panel" id="photo-panel">
-    <div class="period-label">📷 PHOTO</div>
-    <div class="photo-date-row">
-      <div class="date-selects">
-        <button class="btn" id="photo-minus-btn" style="padding:8px 12px;">−</button>
-        <select id="photo-day" class="sel-day"></select>
-        <select id="photo-month" class="sel-month"></select>
-        <select id="photo-year" class="sel-year"></select>
-        <button class="btn" id="photo-plus-btn" style="padding:8px 12px;">+</button>
-      </div>
-      <button class="btn" id="photo-today-btn">Aujourd'hui</button>
-      <span id="photo-week-display" style="font-family:'IBM Plex Mono', monospace; font-size:11px; color:var(--text-lo); white-space:nowrap;"></span>
-    </div>
-    <div class="photo-frame" id="photo-frame">
-      <div class="photo-placeholder" id="photo-placeholder">Aucune photo enregistrée pour cette date</div>
-      <img id="photo-img" style="display:none;" alt="Photo neige du jour">
-    </div>
-    
-    <div id="photo-info-panel" style="display:none;">
-      <div class="photo-info">
-        <div class="photo-info-line">
-          <span class="photo-info-label">Fichier :</span>
-          <span class="photo-info-value" id="photo-filename"></span>
-        </div>
-        <div class="photo-info-line" id="photo-gps-line" style="display:none;">
-          <span class="photo-info-label">GPS :</span>
-          <a class="photo-gps-link" id="photo-gps-link" target="_blank"></a>
-        </div>
-        <div class="photo-info-line" id="photo-date-line" style="display:none;">
-          <span class="photo-info-label">Date :</span>
-          <span class="photo-info-value" id="photo-date-value"></span>
-        </div>
-      </div>
-    </div>
-    
-    <div class="photo-gallery" id="photo-gallery-panel" style="display:none;">
-      <div class="photo-gallery-title">Photos de cette semaine</div>
-      <button class="photo-gallery-btn" id="photo-load-week-btn">Charger les photos de la semaine</button>
-      <div class="photo-gallery-grid" id="photo-gallery-grid"></div>
-    </div>
-    
-    <div class="export-import-btns">
-      <button class="export-btn" id="photo-export-btn">📦 Exporter les photos</button>
-      <button class="import-btn" id="photo-import-btn">📥 Importer les photos</button>
-      <input type="file" id="photo-import-input" accept=".zip" style="display:none;">
-    </div>
-    
-    <div class="photo-actions">
-      <button class="btn btn-primary" id="photo-camera-btn">📷 Prendre une photo</button>
-      <button class="btn btn-primary" id="photo-gallery-btn">🖼️ Rechercher une photo</button>
-      <button class="btn" id="photo-delete-btn" style="display:none;">🗑 Supprimer</button>
-      <button class="photo-sync-btn" id="photo-to-chart-btn" title="Afficher le tableau pour cette date">↓ Afficher semaine</button>
-      <button class="photo-sync-btn" id="chart-to-photo-btn" title="Afficher la photo de cette semaine (année précédente)">↑ Afficher photo</button>
-      <input type="file" id="photo-camera-input" accept="image/*" capture="environment" style="display:none;">
-      <input type="file" id="photo-gallery-input" accept="image/*" style="display:none;">
-      <input type="file" id="photo-folder-input" webkitdirectory directory mozdirectory multiple style="display:none;">
-    </div>
-    <div class="photo-hint">
-      Un site web ne peut pas parcourir ta galerie tout seul : tu choisis la photo (galerie ou appareil photo),
-      elle est ensuite enregistrée sur cet appareil et réapparaît automatiquement quand tu reviens à cette date.
     </div>
   </div>
 
@@ -755,35 +627,6 @@ function formatLong(iso){
   return new Date(iso + "T00:00:00").toLocaleDateString("fr-FR", { day:"numeric", month:"long", year:"numeric" });
 }
 
-// Fonction pour synchroniser le changement de semaine vers la photo
-function syncPhotoToWeek(){
-  const weekNum = parseInt(document.getElementById("week-number").value, 10);
-  
-  // Récupérer la dernière année sélectionnée
-  const selectedYearsEls = Array.from(document.querySelectorAll(".year-check:checked"));
-  if(selectedYearsEls.length === 0) return;
-  const lastYear = Math.max(...selectedYearsEls.map(el => parseInt(el.value, 10)));
-  
-  // Convertir semaine + année en date du lundi de cette semaine
-  const d = new Date(lastYear, 0, 1);
-  const diff = d.getDay() - 1; // 0 = lundi
-  const firstMonday = new Date(d.getTime() - diff * 86400000);
-  const mondayOfWeek = new Date(firstMonday.getTime() + (weekNum - 1) * 7 * 86400000);
-  
-  // Mettre à jour les sélecteurs photo
-  const dayEl = document.getElementById("photo-day");
-  const monthEl = document.getElementById("photo-month");
-  const yearEl = document.getElementById("photo-year");
-  if(dayEl && monthEl && yearEl){
-    dayEl.value = mondayOfWeek.getDate();
-    monthEl.value = mondayOfWeek.getMonth() + 1;
-    yearEl.value = mondayOfWeek.getFullYear();
-    // Déclencher l'actualisation si disponible
-    if(typeof window.photoUpdateWeek === "function") window.photoUpdateWeek();
-    if(typeof window.photoRefresh === "function") window.photoRefresh();
-  }
-}
-
 let requestId = 0;
 
 // Fonction pour calculer les dates de début/fin de semaine
@@ -815,7 +658,6 @@ weekSlider.addEventListener("input", (e) => {
   weekInput.value = e.target.value;
   weekDisplay.textContent = formatWeekDisplay(parseInt(e.target.value, 10));
   loadAndRender();
-  syncPhotoToWeek();
 });
 
 weekInput.addEventListener("change", (e) => {
@@ -824,7 +666,6 @@ weekInput.addEventListener("change", (e) => {
   weekInput.value = val;
   weekDisplay.textContent = formatWeekDisplay(val);
   loadAndRender();
-  syncPhotoToWeek();
 });
 
 // Boutons +/- pour la semaine
@@ -834,7 +675,6 @@ document.getElementById("week-minus").addEventListener("click", () => {
   weekInput.value = val;
   weekDisplay.textContent = formatWeekDisplay(val);
   loadAndRender();
-  syncPhotoToWeek();
 });
 
 document.getElementById("week-plus").addEventListener("click", () => {
@@ -843,7 +683,6 @@ document.getElementById("week-plus").addEventListener("click", () => {
   weekInput.value = val;
   weekDisplay.textContent = formatWeekDisplay(val);
   loadAndRender();
-  syncPhotoToWeek();
 });
 
 // Toggle masquer/afficher les cartes statistiques
@@ -1013,7 +852,7 @@ async function loadAndRender(){
         if(!isotherm && max !== null && min !== null){
           const meanTemp = (max + min) / 2;
           const baseAlt = currentCity.elevation || 0;
-          isotherm = baseAlt + (meanTemp / 0.65) * 100;
+          isotherm = Math.max(0, baseAlt + (meanTemp / 0.65) * 100);
         }
 
         if(snow === null || max === null) return;
@@ -1335,10 +1174,7 @@ document.getElementById("refresh-btn").addEventListener("click", loadAndRender);
 
 // Écouter les changements de sélection d'années
 document.querySelectorAll(".year-check").forEach(checkbox => {
-  checkbox.addEventListener("change", () => {
-    loadAndRender();
-    syncPhotoToWeek();
-  });
+  checkbox.addEventListener("change", loadAndRender);
 });
 
 
@@ -1372,582 +1208,6 @@ document.getElementById("share-btn").addEventListener("click", async () => {
     prompt("Copie ce lien :", window.location.href);
   }
 });
-
-// ---------- Photo "neige du jour" (stockage local sur l'appareil, IndexedDB) ----------
-(function initPhotoFeature(){
-  const dayEl = document.getElementById("photo-day");
-  const monthEl = document.getElementById("photo-month");
-  const yearEl = document.getElementById("photo-year");
-  const todayBtn = document.getElementById("photo-today-btn");
-  const minusBtn = document.getElementById("photo-minus-btn");
-  const plusBtn = document.getElementById("photo-plus-btn");
-  const placeholderEl = document.getElementById("photo-placeholder");
-  const imgEl = document.getElementById("photo-img");
-  const cameraBtn = document.getElementById("photo-camera-btn");
-  const galleryBtn = document.getElementById("photo-gallery-btn");
-  const deleteBtn = document.getElementById("photo-delete-btn");
-  const cameraInput = document.getElementById("photo-camera-input");
-  const galleryInput = document.getElementById("photo-gallery-input");
-  const weekDisplayEl = document.getElementById("photo-week-display");
-
-  if(!dayEl || !monthEl || !yearEl) return;
-
-  const MONTHS = ["janvier","février","mars","avril","mai","juin","juillet","août","septembre","octobre","novembre","décembre"];
-
-  for(let d = 1; d <= 31; d++){
-    const opt = document.createElement("option");
-    opt.value = d; opt.textContent = String(d).padStart(2, "0");
-    dayEl.appendChild(opt);
-  }
-  MONTHS.forEach((m, i) => {
-    const opt = document.createElement("option");
-    opt.value = i + 1; opt.textContent = m;
-    monthEl.appendChild(opt);
-  });
-  const nowYear = new Date().getFullYear();
-  for(let y = nowYear + 1; y >= nowYear - 15; y--){
-    const opt = document.createElement("option");
-    opt.value = y; opt.textContent = y;
-    yearEl.appendChild(opt);
-  }
-
-  function setSelectsToToday(){
-    const now = new Date();
-    dayEl.value = now.getDate();
-    monthEl.value = now.getMonth() + 1;
-    yearEl.value = now.getFullYear();
-  }
-  setSelectsToToday();
-
-  function currentDateKey(){
-    const d = String(dayEl.value).padStart(2, "0");
-    const m = String(monthEl.value).padStart(2, "0");
-    return `${yearEl.value}-${m}-${d}`;
-  }
-
-  // ---- Mini wrapper IndexedDB (stocke les photos localement, sur cet appareil) ----
-  let dbPromise = null;
-  function openDb(){
-    if(dbPromise) return dbPromise;
-    dbPromise = new Promise((resolve, reject) => {
-      if(!("indexedDB" in window)){ reject(new Error("IndexedDB indisponible")); return; }
-      const req = indexedDB.open("neige-photos-db", 1);
-      req.onupgradeneeded = () => { req.result.createObjectStore("photos"); };
-      req.onsuccess = () => resolve(req.result);
-      req.onerror = () => reject(req.error);
-    });
-    return dbPromise;
-  }
-  async function savePhoto(key, file){
-    const db = await openDb();
-    return new Promise((resolve, reject) => {
-      const tx = db.transaction("photos", "readwrite");
-      const photoData = {
-        blob: file,
-        filename: file.name || "photo.jpg"
-      };
-      tx.objectStore("photos").put(photoData, key);
-      tx.oncomplete = () => resolve();
-      tx.onerror = () => reject(tx.error);
-    });
-  }
-  async function loadPhotoBlob(key){
-    const db = await openDb();
-    return new Promise((resolve, reject) => {
-      const tx = db.transaction("photos", "readonly");
-      const req = tx.objectStore("photos").get(key);
-      req.onsuccess = () => resolve(req.result || null);
-      req.onerror = () => reject(req.error);
-    });
-  }
-  async function deletePhotoBlob(key){
-    const db = await openDb();
-    return new Promise((resolve, reject) => {
-      const tx = db.transaction("photos", "readwrite");
-      tx.objectStore("photos").delete(key);
-      tx.oncomplete = () => resolve();
-      tx.onerror = () => reject(tx.error);
-    });
-  }
-
-  let currentObjectUrl = null;
-  
-  function updateWeekDisplay(){
-    // Afficher le numéro de semaine correspondant à la date sélectionnée
-    if(!weekDisplayEl) return;
-    const day = parseInt(dayEl.value, 10);
-    const month = parseInt(monthEl.value, 10);
-    const year = parseInt(yearEl.value, 10);
-    const weekNum = dateToWeekNumber(day, month, year);
-    weekDisplayEl.textContent = `(Semaine ${weekNum})`;
-  }
-
-  async function refreshPhoto(){
-    let photoData = null;
-    try{ photoData = await loadPhotoBlob(currentDateKey()); }
-    catch(e){ console.error("Photo neige du jour :", e); }
-
-    if(currentObjectUrl){ URL.revokeObjectURL(currentObjectUrl); currentObjectUrl = null; }
-
-    if(photoData){
-      const blob = photoData.blob || photoData; // Retrocompatibilité ancien format
-      const filename = photoData.filename || "photo.jpg";
-      
-      currentObjectUrl = URL.createObjectURL(blob);
-      imgEl.src = currentObjectUrl;
-      imgEl.style.display = "block";
-      placeholderEl.style.display = "none";
-      deleteBtn.style.display = "inline-block";
-      
-      // Afficher les infos (filename, GPS, date)
-      showPhotoInfo(filename);
-      
-      // Mettre à jour le numéro de semaine
-      updateWeekFromPhoto();
-    }else{
-      imgEl.style.display = "none";
-      placeholderEl.style.display = "block";
-      deleteBtn.style.display = "none";
-      document.getElementById("photo-info-panel").style.display = "none";
-      document.getElementById("photo-gallery-panel").style.display = "none";
-    }
-    updateWeekDisplay();
-  }
-  
-  function updateWeekFromPhoto(){
-    // Convertir la date de la photo en numéro de semaine et mettre à jour le tableau
-    const day = parseInt(dayEl.value, 10);
-    const month = parseInt(monthEl.value, 10);
-    const year = parseInt(yearEl.value, 10);
-    const weekNum = dateToWeekNumber(day, month, year);
-    
-    // Mettre à jour le slider et affichage du tableau
-    weekSlider.value = weekNum;
-    weekInput.value = weekNum;
-    weekSlider.dispatchEvent(new Event("input"));
-  }
-  
-  function showPhotoInfo(filename){
-    const infoPanelEl = document.getElementById("photo-info-panel");
-    const filenameEl = document.getElementById("photo-filename");
-    const gpsLineEl = document.getElementById("photo-gps-line");
-    const gpsLinkEl = document.getElementById("photo-gps-link");
-    const dateLineEl = document.getElementById("photo-date-line");
-    const dateValueEl = document.getElementById("photo-date-value");
-    
-    // Afficher le filename
-    filenameEl.textContent = filename;
-    
-    // Extraire GPS du filename (format: YYYYMMDD_HHMMSS_GPSXX.XX_YY.YY.jpg)
-    const gpsMatch = filename.match(/_GPS([-\d.]+)_([-\d.]+)/);
-    if(gpsMatch){
-      const lat = parseFloat(gpsMatch[1]);
-      const lon = parseFloat(gpsMatch[2]);
-      gpsLineEl.style.display = "flex";
-      gpsLinkEl.textContent = `${lat.toFixed(2)}° N, ${lon.toFixed(2)}° E`;
-      gpsLinkEl.href = `https://www.google.com/maps?q=${lat},${lon}`;
-    }else{
-      gpsLineEl.style.display = "none";
-    }
-    
-    // Extraire date du filename (format: YYYYMMDD_HHMMSS)
-    const dateMatch = filename.match(/(\d{4})(\d{2})(\d{2})_(\d{2})(\d{2})(\d{2})/);
-    if(dateMatch){
-      const year = dateMatch[1];
-      const month = dateMatch[2];
-      const day = dateMatch[3];
-      const hour = dateMatch[4];
-      const min = dateMatch[5];
-      const sec = dateMatch[6];
-      dateLineEl.style.display = "flex";
-      dateValueEl.textContent = `${day}/${month}/${year} ${hour}:${min}:${sec}`;
-    }else{
-      dateLineEl.style.display = "none";
-    }
-    
-    infoPanelEl.style.display = "block";
-    document.getElementById("photo-gallery-panel").style.display = "block";
-  }
-
-  [dayEl, monthEl, yearEl].forEach(el => el.addEventListener("change", refreshPhoto));
-  
-  // Exposer refreshPhoto et updateWeekDisplay globalement pour syncPhotoToWeek()
-  window.photoRefresh = refreshPhoto;
-  window.photoUpdateWeek = updateWeekDisplay;
-  
-  minusBtn.addEventListener("click", () => {
-    const date = new Date(yearEl.value, monthEl.value - 1, dayEl.value);
-    date.setDate(date.getDate() - 1);
-    dayEl.value = date.getDate();
-    monthEl.value = date.getMonth() + 1;
-    yearEl.value = date.getFullYear();
-    refreshPhoto();
-  });
-
-  plusBtn.addEventListener("click", () => {
-    const date = new Date(yearEl.value, monthEl.value - 1, dayEl.value);
-    date.setDate(date.getDate() + 1);
-    dayEl.value = date.getDate();
-    monthEl.value = date.getMonth() + 1;
-    yearEl.value = date.getFullYear();
-    refreshPhoto();
-  });
-  
-  if(todayBtn) todayBtn.addEventListener("click", () => { setSelectsToToday(); refreshPhoto(); });
-
-  async function handlePhotoFile(file){
-    if(!file) return;
-    
-    // Extraire la date du filename (format: YYYYMMDD_HHMMSS)
-    const dateMatch = file.name.match(/(\d{4})(\d{2})(\d{2})_(\d{2})(\d{2})(\d{2})/);
-    if(dateMatch){
-      const year = dateMatch[1];
-      const month = dateMatch[2];
-      const day = dateMatch[3];
-      
-      // Mettre à jour les sélecteurs avec la date extraite
-      dayEl.value = parseInt(day, 10);
-      monthEl.value = parseInt(month, 10);
-      yearEl.value = parseInt(year, 10);
-    }
-    
-    try{
-      await savePhoto(currentDateKey(), file);
-      await refreshPhoto();
-    }catch(e){
-      alert("Impossible d'enregistrer la photo sur cet appareil.");
-      console.error(e);
-    }
-  }
-
-  cameraBtn.addEventListener("click", () => cameraInput.click());
-  cameraInput.addEventListener("change", async () => {
-    const file = cameraInput.files && cameraInput.files[0];
-    await handlePhotoFile(file);
-    cameraInput.value = "";
-  });
-
-  galleryBtn.addEventListener("click", () => galleryInput.click());
-  galleryInput.addEventListener("change", async () => {
-    const file = galleryInput.files && galleryInput.files[0];
-    await handlePhotoFile(file);
-    galleryInput.value = "";
-  });
-
-  const folderInput = document.getElementById("photo-folder-input");
-  document.getElementById("photo-load-week-btn").addEventListener("click", () => {
-    folderInput.click();
-  });
-
-  folderInput.addEventListener("change", async () => {
-    const files = folderInput.files;
-    if(!files || files.length === 0) return;
-    
-    const weekNum = parseInt(document.getElementById("week-number").value, 10);
-    const year = parseInt(yearEl.value, 10);
-    
-    // Calculer les dates du lundi et dimanche de la semaine
-    const d = new Date(year, 0, 1);
-    const diff = d.getDay() - 1;
-    const firstMonday = new Date(d.getTime() - diff * 86400000);
-    const monday = new Date(firstMonday.getTime() + (weekNum - 1) * 7 * 86400000);
-    const sunday = new Date(monday.getTime() + 6 * 86400000);
-    
-    // Filtrer les fichiers de la semaine
-    const weekPhotos = [];
-    for(let file of files){
-      if(!file.name.match(/\.(jpg|jpeg|png|gif)$/i)) continue;
-      
-      const dateMatch = file.name.match(/(\d{4})(\d{2})(\d{2})/);
-      if(!dateMatch) continue;
-      
-      const year = parseInt(dateMatch[1], 10);
-      const month = parseInt(dateMatch[2], 10);
-      const day = parseInt(dateMatch[3], 10);
-      const date = new Date(year, month - 1, day);
-      
-      if(date >= monday && date <= sunday){
-        weekPhotos.push(file);
-      }
-    }
-    
-    // Afficher la galerie
-    displayPhotoGallery(weekPhotos);
-    folderInput.value = "";
-  });
-
-  function displayPhotoGallery(files){
-    const gridEl = document.getElementById("photo-gallery-grid");
-    gridEl.innerHTML = "";
-    
-    files.sort((a, b) => a.name.localeCompare(b.name));
-    
-    files.forEach(file => {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const item = document.createElement("div");
-        item.className = "photo-gallery-item";
-        const img = document.createElement("img");
-        img.src = e.target.result;
-        img.title = file.name;
-        item.appendChild(img);
-        
-        item.addEventListener("click", async () => {
-          await handlePhotoFile(file);
-          document.querySelectorAll(".photo-gallery-item").forEach(el => el.classList.remove("active"));
-          item.classList.add("active");
-        });
-        
-        gridEl.appendChild(item);
-      };
-      reader.readAsDataURL(file);
-    });
-  }
-
-  deleteBtn.addEventListener("click", async () => {
-    if(!confirm("Supprimer la photo enregistrée pour cette date ?")) return;
-    try{
-      await deletePhotoBlob(currentDateKey());
-      await refreshPhoto();
-    }catch(e){ console.error(e); }
-  });
-
-  // ---- Synchronisation photo ↔ tableau ----
-  function dateToWeekNumber(day, month, year){
-    // Convertir jour/mois/année en numéro de semaine ISO (1-52)
-    const date = new Date(year, month - 1, day);
-    const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
-    const dayNum = d.getUTCDay() || 7; // 1-7, lundi-dimanche
-    d.setUTCDate(d.getUTCDate() + 4 - dayNum);
-    const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
-    const weekNum = Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
-    return Math.max(1, Math.min(52, weekNum));
-  }
-
-  function weekNumberToDate(weekNumber){
-    // Convertir numéro de semaine en date du lundi (ISO 8601)
-    const year = new Date().getFullYear();
-    const d = new Date(year, 0, 1);
-    const diff = d.getDay() - 1; // 0 = lundi
-    const firstMonday = new Date(d.getTime() - diff * 86400000);
-    const mondayOfWeek = new Date(firstMonday.getTime() + (weekNumber - 1) * 7 * 86400000);
-    return mondayOfWeek;
-  }
-
-  const photoToChartBtn = document.getElementById("photo-to-chart-btn");
-  const chartToPhotoBtn = document.getElementById("chart-to-photo-btn");
-
-  photoToChartBtn.addEventListener("click", () => {
-    // Photo → Tableau : convertir jour/mois en semaine
-    const day = parseInt(dayEl.value, 10);
-    const month = parseInt(monthEl.value, 10);
-    const year = parseInt(yearEl.value, 10);
-    const weekNum = dateToWeekNumber(day, month, year);
-    
-    // Mise à jour visuelle du bouton
-    photoToChartBtn.textContent = `↓ Semaine ${weekNum}`;
-    setTimeout(() => { photoToChartBtn.textContent = "↓ Afficher semaine"; }, 1500);
-    
-    // Simuler le changement du slider (qui déclenche les event listeners)
-    weekSlider.value = weekNum;
-    weekInput.value = weekNum;
-    weekSlider.dispatchEvent(new Event("input"));
-  });
-
-  chartToPhotoBtn.addEventListener("click", () => {
-    // Tableau → Photo : convertir semaine en jour/mois, charger photo année précédente
-    const weekNum = parseInt(weekSlider.value, 10);
-    const dateOfWeek = weekNumberToDate(weekNum);
-    const day = dateOfWeek.getDate();
-    const month = dateOfWeek.getMonth() + 1;
-    const year = dateOfWeek.getFullYear();
-
-    dayEl.value = day;
-    monthEl.value = month;
-    yearEl.value = year - 1; // Année précédente
-    
-    // Mise à jour visuelle du bouton
-    chartToPhotoBtn.textContent = `↑ ${day}/${month}/${year - 1}`;
-    setTimeout(() => { chartToPhotoBtn.textContent = "↑ Afficher photo"; }, 1500);
-    
-    refreshPhoto();
-  });
-
-  // ---- Export/Import des photos ----
-  async function exportPhotos(){
-    try {
-      const db = await openDb();
-      const tx = db.transaction("photos", "readonly");
-      const store = tx.objectStore("photos");
-      
-      const allPhotos = await new Promise((resolve, reject) => {
-        const req = store.getAll();
-        req.onsuccess = () => resolve(req.result);
-        req.onerror = () => reject(req.error);
-      });
-      
-      if(allPhotos.length === 0){
-        alert("Aucune photo à exporter !");
-        return;
-      }
-      
-      const zip = new JSZip();
-      const photoFolder = zip.folder("photos");
-      const metadata = {};
-      
-      for(let i = 0; i < allPhotos.length; i++){
-        const photoData = allPhotos[i];
-        const blob = photoData.blob || photoData;
-        const filename = photoData.filename || `photo_${i}.jpg`;
-        
-        photoFolder.file(filename, blob);
-        metadata[filename] = {
-          date: new Date().toISOString(),
-          size: blob.size
-        };
-      }
-      
-      zip.file("metadata.json", JSON.stringify(metadata, null, 2));
-      
-      const zipBlob = await zip.generateAsync({type: "blob"});
-      const url = URL.createObjectURL(zipBlob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `photos-export-${new Date().toISOString().split('T')[0]}.zip`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-      
-      alert(`Export réussi ! ${allPhotos.length} photos téléchargées.`);
-    }catch(e){
-      alert("Erreur lors de l'export : " + e.message);
-      console.error(e);
-    }
-  }
-  
-  async function importPhotos(zipFile){
-    try {
-      const zip = await JSZip.loadAsync(zipFile);
-      
-      // Chercher d'abord dans un dossier "photos"
-      let files = zip.folder("photos")?.file(/.+/);
-      
-      // Si pas trouvé, chercher tous les fichiers image récursivement
-      if(!files || files.length === 0){
-        files = zip.file(/.+\.(jpg|jpeg|png|gif|JPG|JPEG|PNG|GIF)$/i);
-      }
-      
-      if(!files || files.length === 0){
-        alert("Aucune photo trouvée dans le ZIP !");
-        return;
-      }
-      
-      let importCount = 0;
-      
-      for(let file of files){
-        if(file.name === "" || file.name.endsWith("/")){
-          continue;
-        }
-        
-        const blob = await file.async("blob");
-        // Utiliser juste le nom du fichier (sans chemin)
-        const filename = file.name.split('/').pop();
-        
-        // Extraire la date du filename (format: YYYYMMDD_HHMMSS)
-        const dateMatch = filename.match(/(\d{4})(\d{2})(\d{2})_(\d{2})(\d{2})(\d{2})/);
-        let dateKey = null;
-        
-        if(dateMatch){
-          const year = dateMatch[1];
-          const month = dateMatch[2];
-          const day = dateMatch[3];
-          // Créer la clé au format YYYY-MM-DD
-          dateKey = `${year}-${month}-${day}`;
-        }
-        
-        try {
-          if(dateKey){
-            // Si on a une date valide, l'utiliser comme clé
-            await savePhoto(dateKey, {
-              blob: blob,
-              filename: filename
-            });
-          }else{
-            // Sinon, utiliser le nom du fichier
-            await savePhoto(filename.replace(/[^0-9\-_\.]/g, ""), {
-              blob: blob,
-              filename: filename
-            });
-          }
-          importCount++;
-        }catch(e){
-          console.error("Erreur import " + filename, e);
-        }
-      }
-      
-      alert(`Import réussi ! ${importCount} photos chargées.`);
-      refreshPhoto();
-    }catch(e){
-      alert("Erreur lors de l'import : " + e.message);
-      console.error(e);
-    }
-  }
-  
-  const exportBtn = document.getElementById("photo-export-btn");
-  const importBtn = document.getElementById("photo-import-btn");
-  const importInput = document.getElementById("photo-import-input");
-  
-  exportBtn.addEventListener("click", exportPhotos);
-  importBtn.addEventListener("click", () => importInput.click());
-  importInput.addEventListener("change", async () => {
-    const file = importInput.files && importInput.files[0];
-    if(file){
-      await importPhotos(file);
-      importInput.value = "";
-    }
-  });
-
-  // ---- Init photo avec la première disponible ----
-  async function initPhotoWithFirstAvailable(){
-    try {
-      const db = await openDb();
-      const tx = db.transaction("photos", "readonly");
-      const store = tx.objectStore("photos");
-      
-      const allData = await new Promise((resolve, reject) => {
-        const req = store.getAll();
-        req.onsuccess = () => resolve(req.result);
-        req.onerror = () => reject(req.error);
-      });
-      
-      if(allData.length > 0){
-        // Récupérer la première photo
-        const firstPhoto = allData[0];
-        const filename = firstPhoto.filename || "";
-        
-        // Extraire la date du filename (format: YYYYMMDD_HHMMSS)
-        const dateMatch = filename.match(/(\d{4})(\d{2})(\d{2})_(\d{2})(\d{2})(\d{2})/);
-        if(dateMatch){
-          const year = dateMatch[1];
-          const month = dateMatch[2];
-          const day = dateMatch[3];
-          
-          // Mettre à jour les sélecteurs avec la date extraite
-          dayEl.value = parseInt(day, 10);
-          monthEl.value = parseInt(month, 10);
-          yearEl.value = parseInt(year, 10);
-        }
-      }
-    }catch(e){
-      console.error("Erreur init photo", e);
-    }
-    
-    await refreshPhoto();
-  }
-
-  initPhotoWithFirstAvailable();
-})();
 
 // ---------- Init from URL ----------
 (function init(){
